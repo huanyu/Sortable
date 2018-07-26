@@ -55,8 +55,6 @@
 
 		moved,
 
-		forRepaintDummy,
-
 		/** @const */
 		R_SPACE = /\s+/g,
 		R_FLOAT = /left|right|inline/,
@@ -92,8 +90,6 @@
 
 		savedInputChecked = [],
 		touchDragOverListeners = [],
-
-		alwaysFalse = function () { return false; },
 
 		_autoScroll = _throttle(function (/**Event*/evt, /**Object*/options, /**HTMLElement*/rootEl) {
 			// Bug: https://bugzilla.mozilla.org/show_bug.cgi?id=505521
@@ -167,9 +163,7 @@
 							scrollOffsetX = vx ? vx * speed : 0;
 
 							if ('function' === typeof(scrollCustomFn)) {
-								if (scrollCustomFn.call(_this, scrollOffsetX, scrollOffsetY, evt, touchEvt, el) !== 'continue') {
-									return;
-								}
+								return scrollCustomFn.call(_this, scrollOffsetX, scrollOffsetY, evt);
 							}
 
 							if (el === win) {
@@ -186,11 +180,8 @@
 
 		_prepareGroup = function (options) {
 			function toFn(value, pull) {
-				if (value == null || value === true) {
+				if (value === void 0 || value === true) {
 					value = group.name;
-					if (value == null) {
-						return alwaysFalse;
-					}
 				}
 
 				if (typeof value === 'function') {
@@ -202,8 +193,8 @@
 						return pull
 							? value
 							: value && (value.join
-								? value.indexOf(fromGroup) > -1
-								: (fromGroup == value)
+									? value.indexOf(fromGroup) > -1
+									: (fromGroup == value)
 							);
 					};
 				}
@@ -259,12 +250,12 @@
 
 		// Default options
 		var defaults = {
-			group: null,
+			group: Math.random(),
 			sort: true,
 			disabled: false,
 			store: null,
 			handle: null,
-      scroll: true,
+			scroll: true,
 			scrollSensitivity: 30,
 			scrollSpeed: 10,
 			draggable: /[uo]l/i.test(el.nodeName) ? 'li' : '>*',
@@ -282,7 +273,6 @@
 			dragoverBubble: false,
 			dataIdAttr: 'data-id',
 			delay: 0,
-			touchStartThreshold: parseInt(window.devicePixelRatio, 10) || 1,
 			forceFallback: false,
 			fallbackClass: 'sortable-fallback',
 			fallbackOnBody: false,
@@ -464,8 +454,8 @@
 					_on(ownerDocument, 'touchend', _this._disableDelayedDrag);
 					_on(ownerDocument, 'touchcancel', _this._disableDelayedDrag);
 					_on(ownerDocument, 'mousemove', _this._disableDelayedDrag);
-					_on(ownerDocument, 'touchmove', _this._delayedDragTouchMoveHandler);
-					options.supportPointer && _on(ownerDocument, 'pointermove', _this._delayedDragTouchMoveHandler);
+					_on(ownerDocument, 'touchmove', _this._disableDelayedDrag);
+					options.supportPointer && _on(ownerDocument, 'pointermove', _this._disableDelayedDrag);
 
 					_this._dragStartTimer = setTimeout(dragStartFn, options.delay);
 				} else {
@@ -473,12 +463,6 @@
 				}
 
 
-			}
-		},
-
-		_delayedDragTouchMoveHandler: function (/** TouchEvent|PointerEvent **/e) {
-			if (min(abs(e.clientX - this._lastX), abs(e.clientY - this._lastY)) >= this.options.touchStartThreshold) {
-				this._disableDelayedDrag();
 			}
 		},
 
@@ -562,7 +546,7 @@
 				var parent = target;
 				var i = touchDragOverListeners.length;
 
-				while (target && target.shadowRoot) {
+				if (target && target.shadowRoot) {
 					target = target.shadowRoot.elementFromPoint(touchEvt.clientX, touchEvt.clientY);
 					parent = target;
 				}
@@ -584,7 +568,7 @@
 
 						target = parent; // store last element
 					}
-					/* jshint boss:true */
+						/* jshint boss:true */
 					while (parent = parent.parentNode);
 				}
 
@@ -601,7 +585,7 @@
 					fallbackTolerance = options.fallbackTolerance,
 					fallbackOffset = options.fallbackOffset,
 					touch = evt.touches ? evt.touches[0] : evt,
-					dx = (touch.clientX - tapEvt.clientX) + fallbackOffset.x,
+					dx = 0, //(touch.clientX - tapEvt.clientX) + fallbackOffset.x,
 					dy = (touch.clientY - tapEvt.clientY) + fallbackOffset.y,
 					translate3d = evt.touches ? 'translate3d(' + dx + 'px,' + dy + 'px,0)' : 'translate(' + dx + 'px,' + dy + 'px)';
 
@@ -643,8 +627,8 @@
 				_toggleClass(ghostEl, options.ghostClass, false);
 				_toggleClass(ghostEl, options.fallbackClass, true);
 				_toggleClass(ghostEl, options.dragClass, true);
-
-				_css(ghostEl, 'top', rect.top - parseInt(css.marginTop, 10));
+				_css(ghostEl, 'top', dragEl.offsetTop + this.el.offsetTop - this.el.scrollTop);
+				//_css(ghostEl, 'top', rect.top - parseInt(css.marginTop, 10));
 				_css(ghostEl, 'left', rect.left - parseInt(css.marginLeft, 10));
 				_css(ghostEl, 'width', rect.width);
 				_css(ghostEl, 'height', rect.height);
@@ -749,14 +733,14 @@
 
 			if (activeSortable && !options.disabled &&
 				(isOwner
-					? canSort || (revert = !rootEl.contains(dragEl)) // Reverting item into the original list
-					: (
-						putSortable === this ||
-						(
-							(activeSortable.lastPullMode = activeGroup.checkPull(this, activeSortable, dragEl, evt)) &&
-							group.checkPut(this, activeSortable, dragEl, evt)
+						? canSort || (revert = !rootEl.contains(dragEl)) // Reverting item into the original list
+						: (
+							putSortable === this ||
+							(
+								(activeSortable.lastPullMode = activeGroup.checkPull(this, activeSortable, dragEl, evt)) &&
+								group.checkPut(this, activeSortable, dragEl, evt)
+							)
 						)
-					)
 				) &&
 				(evt.rootEl === void 0 || evt.rootEl === this.el) // touch fallback
 			) {
@@ -850,7 +834,7 @@
 						} else {
 							after = tgTop > elTop;
 						}
-						} else if (!isMovingBetweenSortable) {
+					} else if (!isMovingBetweenSortable) {
 						after = (nextSibling !== dragEl) && !isLong || halfway && isLong;
 					}
 
@@ -899,7 +883,7 @@
 					+ (prevRect.top - currentRect.top) + 'px,0)'
 				);
 
-				forRepaintDummy = target.offsetWidth; // repaint
+				target.offsetWidth; // repaint
 
 				_css(target, 'transition', 'all ' + ms + 'ms');
 				_css(target, 'transform', 'translate3d(0,0,0)');
@@ -974,21 +958,21 @@
 					_toggleClass(dragEl, this.options.chosenClass, false);
 
 					// Drag stop event
-					_dispatchEvent(this, rootEl, 'unchoose', dragEl, parentEl, rootEl, oldIndex, null, evt);
+					_dispatchEvent(this, rootEl, 'unchoose', dragEl, parentEl, rootEl, oldIndex);
 
 					if (rootEl !== parentEl) {
 						newIndex = _index(dragEl, options.draggable);
 
 						if (newIndex >= 0) {
 							// Add event
-							_dispatchEvent(null, parentEl, 'add', dragEl, parentEl, rootEl, oldIndex, newIndex, evt);
+							_dispatchEvent(null, parentEl, 'add', dragEl, parentEl, rootEl, oldIndex, newIndex);
 
 							// Remove event
-							_dispatchEvent(this, rootEl, 'remove', dragEl, parentEl, rootEl, oldIndex, newIndex, evt);
+							_dispatchEvent(this, rootEl, 'remove', dragEl, parentEl, rootEl, oldIndex, newIndex);
 
 							// drag from one list and drop into another
-							_dispatchEvent(null, parentEl, 'sort', dragEl, parentEl, rootEl, oldIndex, newIndex, evt);
-							_dispatchEvent(this, rootEl, 'sort', dragEl, parentEl, rootEl, oldIndex, newIndex, evt);
+							_dispatchEvent(null, parentEl, 'sort', dragEl, parentEl, rootEl, oldIndex, newIndex);
+							_dispatchEvent(this, rootEl, 'sort', dragEl, parentEl, rootEl, oldIndex, newIndex);
 						}
 					}
 					else {
@@ -998,8 +982,8 @@
 
 							if (newIndex >= 0) {
 								// drag & drop within the same list
-								_dispatchEvent(this, rootEl, 'update', dragEl, parentEl, rootEl, oldIndex, newIndex, evt);
-								_dispatchEvent(this, rootEl, 'sort', dragEl, parentEl, rootEl, oldIndex, newIndex, evt);
+								_dispatchEvent(this, rootEl, 'update', dragEl, parentEl, rootEl, oldIndex, newIndex);
+								_dispatchEvent(this, rootEl, 'sort', dragEl, parentEl, rootEl, oldIndex, newIndex);
 							}
 						}
 					}
@@ -1010,7 +994,7 @@
 							newIndex = oldIndex;
 						}
 
-						_dispatchEvent(this, rootEl, 'end', dragEl, parentEl, rootEl, oldIndex, newIndex, evt);
+						_dispatchEvent(this, rootEl, 'end', dragEl, parentEl, rootEl, oldIndex, newIndex);
 
 						// Save sorting
 						this.save();
@@ -1024,28 +1008,28 @@
 
 		_nulling: function() {
 			rootEl =
-			dragEl =
-			parentEl =
-			ghostEl =
-			nextEl =
-			cloneEl =
-			lastDownEl =
+				dragEl =
+					parentEl =
+						ghostEl =
+							nextEl =
+								cloneEl =
+									lastDownEl =
 
-			scrollEl =
-			scrollParentEl =
+										scrollEl =
+											scrollParentEl =
 
-			tapEvt =
-			touchEvt =
+												tapEvt =
+													touchEvt =
 
-			moved =
-			newIndex =
+														moved =
+															newIndex =
 
-			lastEl =
-			lastCSS =
+																lastEl =
+																	lastCSS =
 
-			putSortable =
-			activeGroup =
-			Sortable.active = null;
+																		putSortable =
+																			activeGroup =
+																				Sortable.active = null;
 
 			savedInputChecked.forEach(function (el) {
 				el.checked = true;
@@ -1319,7 +1303,7 @@
 
 
 
-	function _dispatchEvent(sortable, rootEl, name, targetEl, toEl, fromEl, startIndex, newIndex, originalEvt) {
+	function _dispatchEvent(sortable, rootEl, name, targetEl, toEl, fromEl, startIndex, newIndex) {
 		sortable = (sortable || rootEl[expando]);
 
 		var evt = document.createEvent('Event'),
@@ -1335,8 +1319,6 @@
 
 		evt.oldIndex = startIndex;
 		evt.newIndex = newIndex;
-
-		evt.originalEvent = originalEvt;
 
 		rootEl.dispatchEvent(evt);
 
@@ -1362,8 +1344,6 @@
 		evt.related = targetEl || toEl;
 		evt.relatedRect = targetRect || toEl.getBoundingClientRect();
 		evt.willInsertAfter = willInsertAfter;
-
-		evt.originalEvent = originalEvt;
 
 		fromEl.dispatchEvent(evt);
 
@@ -1440,15 +1420,15 @@
 
 	function _matches(/**HTMLElement*/el, /**String*/selector) {
 		if (el) {
-			try {
-				if (el.matches) {
-					return el.matches(selector);
-				} else if (el.msMatchesSelector) {
-					return el.msMatchesSelector(selector);
-				}
-			} catch(_) {
-				return false;
-			}
+			selector = selector.split('.');
+
+			var tag = selector.shift().toUpperCase(),
+				re = new RegExp('\\s(' + selector.join('|') + ')(?=\\s)', 'g');
+
+			return (
+				(tag === '' || el.nodeName.toUpperCase() == tag) &&
+				(!selector.length || ((' ' + el.className + ' ').match(re) || []).length == selector.length)
+			);
 		}
 
 		return false;
@@ -1500,8 +1480,6 @@
 	}
 
 	function _saveInputCheckedState(root) {
-		savedInputChecked.length = 0;
-
 		var inputs = root.getElementsByTagName('input');
 		var idx = inputs.length;
 
