@@ -1,3 +1,7 @@
+## this project is forked from RubaXa/Sortable. added lockX and fixPageScroll options.
+
+---
+
 ## Hi, this project very much requires the maintainer, if you have a chewing and appropriate skills, please [contact me](mailto:ibn@rubaxa.org?subject=Sortable%20vs.%20Maintainer)!
 
 ---
