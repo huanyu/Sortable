@@ -279,7 +279,8 @@
 			fallbackTolerance: 0,
 			fallbackOffset: {x: 0, y: 0},
 			supportPointer: Sortable.supportPointer !== false,
-			lockX: false
+			lockX: false,
+			fixPageScroll: false
 		};
 
 
@@ -624,11 +625,22 @@
 					ghostRect;
 
 				ghostEl = dragEl.cloneNode(true);
+				var pageScrollTop = 0
+				if (options.fixPageScroll === true) {
+					if(window.pageYOffset) {
+						pageScrollTop = window.pageYOffset
+					} else if(document.documentElement && document.documentElement.scrollTop) {
+						// IE 6 Strict
+						pageScrollTop = document.documentElement.scrollTop;
+					} else if(document.body) {    // all other IE
+						pageScrollTop = document.body.scrollTop;
+					}
+				}
 
 				_toggleClass(ghostEl, options.ghostClass, false);
 				_toggleClass(ghostEl, options.fallbackClass, true);
 				_toggleClass(ghostEl, options.dragClass, true);
-				_css(ghostEl, 'top', dragEl.offsetTop + this.el.offsetTop - this.el.scrollTop);
+				_css(ghostEl, 'top', dragEl.offsetTop + this.el.offsetTop - this.el.scrollTop - pageScrollTop);
 				//_css(ghostEl, 'top', rect.top - parseInt(css.marginTop, 10));
 				_css(ghostEl, 'left', rect.left - parseInt(css.marginLeft, 10));
 				_css(ghostEl, 'width', rect.width);
